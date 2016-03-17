@@ -6,17 +6,20 @@ import hus.HusMove;
 
 import java.util.ArrayList;
 
-public class MyTools {
+public class MyTools implements Runnable {
 
     public static int TOTAL_SEEDS_WEIGHT = 2;
-    public static int MAX_DEPTH = 5; // constant max depth for minimax
+
+    public MyMove best_move = new MyMove();
+    public HusBoardState start_state;
 
     private int self_id;
     private int opponent_id;
 
-    public MyTools(int self_id, int opponent_id) {
+    public MyTools(int self_id, int opponent_id, HusBoardState state) {
         this.self_id = self_id;
         this.opponent_id = opponent_id;
+        this.start_state = state;
     }
 
     public int eval(HusBoard board) {
@@ -28,7 +31,7 @@ public class MyTools {
     @param current depth at which we are searching the tree
      */
     public MyMove minimax(HusBoardState state, int depth) {
-        if (depth >= MAX_DEPTH)
+        if (depth == 0)
             return new MyMove(eval(state));
         else {
             ArrayList<HusMove> moves = state.getLegalMoves();
@@ -44,7 +47,7 @@ public class MyTools {
             for (HusMove move : moves) {
                 HusBoardState candidate_board = (HusBoardState) state.clone();
                 candidate_board.move(move);
-                MyMove result = minimax(candidate_board, depth + 1); // Get score
+                MyMove result = minimax(candidate_board, depth - 1); // Get score
                 result.move = move; // Store the move
 
                 if (!initialized
@@ -80,5 +83,23 @@ public class MyTools {
         for (int i=0; i<2*HusBoardState.BOARD_WIDTH; i++)
             sum += state.getPits()[player][i];
         return sum;
+    }
+
+    @Override
+    public void run() {
+        int depth = 3; // Start with depth 3, which should never take more than 2 seconds
+        while (! Thread.currentThread().isInterrupted()) {
+
+            MyMove best = minimax(start_state, depth);
+
+            if (! Thread.currentThread().isInterrupted())
+                synchronized (this.best_move) {
+                    this.best_move = best;
+                }
+            System.out.println("Explored to depth " + depth);
+
+            depth ++;
+        }
+        //System.exit(0);
     }
 }

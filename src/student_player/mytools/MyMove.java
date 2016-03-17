@@ -3,8 +3,12 @@ package student_player.mytools;
 import hus.HusMove;
 
 public class MyMove {
-    public int score;
+    public int score = 0;
     public HusMove move;
+
+    public MyMove() {
+        move = new HusMove();
+    }
 
     public MyMove(int score) {
         this.move = new HusMove();
