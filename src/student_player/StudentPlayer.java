@@ -30,12 +30,13 @@ public class StudentPlayer extends HusPlayer {
             tools = new MyTools(player_id, opponent_id);
 
         tools.start_state = board_state;
-        tools.max_time = startTime + MyTools.TIME_LIMIT;
+        //tools.max_time = startTime + MyTools.NORMAL_TIME_LIMIT - MyTools.TIME_MARGIN;
+        tools.setMaxTime(startTime);
 
         MyMove best = tools.findBest();
 
         long endTime = System.currentTimeMillis();
-        System.out.println("Total execution time: " + (endTime-startTime) + "ms");
+        //System.out.println("Total execution time: " + (endTime-startTime) + "ms, move#" + board_state.getTurnNumber());
 
         return best.move;
     }

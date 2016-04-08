@@ -12,15 +12,14 @@ public class MyTools {
 
     public final static int ABSOLUTE_MAX_DEPTH = 100;
     public final static int WEIGHT_TOTAL_SEEDS = 1;
-    public final static int WEIGHT_LEGAL_MOVES = 3;
+    public final static int WEIGHT_LEGAL_MOVES = 1;
     public final static int STARTING_DEPTH = 3;
-    public final static int TIME_LIMIT = 1950; // in milliseconds
+    public final static long FIRST_MOVE_TIME_LIMIT = 30000; // in milliseconds
+    public final static long NORMAL_TIME_LIMIT = 2000; // in milliseconds
+    public final static long TIME_MARGIN = 60; // in milliseconds
 
     public final static boolean FEATURE_SORTING = true;
     public final static boolean FEATURE_AB_PRUNING = true;
-
-    public MyMove best_shared = new MyMove();
-    public Object best_lock = new Object();
 
     public HusBoardState start_state;
     public long max_time = 0;
@@ -138,7 +137,17 @@ public class MyTools {
     }
 
     public boolean isTimeUp() {
-        return System.currentTimeMillis() >= this.max_time;
+        return (System.currentTimeMillis() >= this.max_time);
+    }
+
+    /* How long we have for this move in milliseconds */
+    public long moveTime() {
+        return (this.start_state.getTurnNumber() == 0) ? FIRST_MOVE_TIME_LIMIT : NORMAL_TIME_LIMIT;
+    }
+
+    public void setMaxTime(long start_time) {
+        //System.out.println("Move #"+start_state.getTurnNumber()+" length: " + (moveTime() - TIME_MARGIN)+"ms");
+        this.max_time = start_time + (moveTime() - TIME_MARGIN);
     }
 
     public MyMove findBest() {
@@ -151,7 +160,7 @@ public class MyTools {
 
             // First starts by maximizing. Our "best" is just INT_MAX since we don't want it to think it is useless.
             MyMove candidate = minimax(start_state, depth, Integer.MAX_VALUE);
-            System.out.println("Best at depth " + depth + ": " + candidate.toRelativeString(current_score));
+            //System.out.println("Best at depth " + depth + ": " + candidate.toRelativeString(current_score));
             if (! candidate.incomplete)
                 best = candidate;
 
@@ -162,8 +171,8 @@ public class MyTools {
             else
                 depth++;
         }
-        System.out.println("Returning move : " + best.toRelativeString(current_score));
-        System.out.println("Explored to depth " + depth);
+        //System.out.println("Returning move : " + best.toRelativeString(current_score));
+        //System.out.println("Explored to depth " + depth);
         return best;
     }
 }
