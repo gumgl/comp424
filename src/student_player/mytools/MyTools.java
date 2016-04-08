@@ -8,11 +8,13 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
 
-public class MyTools implements Runnable {
+public class MyTools {
 
     public final static int ABSOLUTE_MAX_DEPTH = 100;
     public final static int WEIGHT_TOTAL_SEEDS = 1;
     public final static int WEIGHT_LEGAL_MOVES = 3;
+    public final static int STARTING_DEPTH = 3;
+    public final static int TIME_LIMIT = 1950; // in milliseconds
 
     public final static boolean FEATURE_SORTING = true;
     public final static boolean FEATURE_AB_PRUNING = true;
@@ -21,18 +23,14 @@ public class MyTools implements Runnable {
     public Object best_lock = new Object();
 
     public HusBoardState start_state;
+    public long max_time = 0;
 
     private int self_id;
     private int opponent_id;
 
-    public MyTools(int self_id, int opponent_id, HusBoardState state) {
+    public MyTools(int self_id, int opponent_id) {
         this.self_id = self_id;
         this.opponent_id = opponent_id;
-        this.start_state = state;
-    }
-
-    public int eval(HusBoard board) {
-        return eval((HusBoardState) board.getBoardState());
     }
 
     /* Returns the best move following the minimax algorithm
@@ -40,6 +38,7 @@ public class MyTools implements Runnable {
     @param current depth at which we are searching the tree
      */
     public MyMove minimax(HusBoardState state, int depth, int alphabeta) {
+        boolean timedout = false;
         if (depth == 0)
             return new MyMove(eval(state));
         else {
@@ -75,19 +74,23 @@ public class MyTools implements Runnable {
                 MyMove result = minimax(move.state, depth - 1, best.score); // Get score
                 move.score = result.score; // Bring the score up in the tree
 
-                if (maximize && move.score > best.score
-                        || !maximize && move.score < best.score)
+                if (maximize && move.score >= best.score
+                        || !maximize && move.score <= best.score)
                     best = move;
 
-                // If we're minimizing and our current best is less than our parent's max so far
+                // If we're minimizing and our current best is lower than our parent's max so far
                 // then we don't need to go further because our parent wants to maximize
                 // and our best will inevitably be lower. The inverse is also true.
                 if (FEATURE_AB_PRUNING &&
                         (!maximize && best.score < alphabeta
-                      || maximize && best.score > alphabeta)
-                      || Thread.currentThread().isInterrupted())
+                      || maximize && best.score > alphabeta))
                     break;
+                if (isTimeUp()) {
+                    timedout = true;
+                    break;
+                }
             }
+            best.incomplete = timedout;
             return best;
         }
     }
@@ -134,27 +137,33 @@ public class MyTools implements Runnable {
                 .filter(n -> n >= 2).count();
     }
 
-    @Override
-    public void run() {
-        int depth = 3; // Start with depth 3, which should never take more than 2 seconds
+    public boolean isTimeUp() {
+        return System.currentTimeMillis() >= this.max_time;
+    }
+
+    public MyMove findBest() {
+        int depth = STARTING_DEPTH; // Start with depth 3, which should never take more than 2 seconds
+        int current_score = eval(start_state);
+
+        MyMove best = new MyMove(0);
+
         while (true) {
 
             // First starts by maximizing. Our "best" is just INT_MAX since we don't want it to think it is useless.
-            MyMove best = minimax(start_state, depth, Integer.MAX_VALUE);
+            MyMove candidate = minimax(start_state, depth, Integer.MAX_VALUE);
+            System.out.println("Best at depth " + depth + ": " + candidate.toRelativeString(current_score));
+            if (! candidate.incomplete)
+                best = candidate;
 
-
-            if (Thread.currentThread().isInterrupted()
-                    || depth >= ABSOLUTE_MAX_DEPTH
-                    || best.score >= Integer.MAX_VALUE)
+            if (depth >= ABSOLUTE_MAX_DEPTH // don't blow up the call stack!
+                || best.score >= Integer.MAX_VALUE // You found a winning move, no need to go further
+                || isTimeUp() )
                 break;
-            else {
-                synchronized (this.best_lock) {
-                    this.best_shared = best;
-                }
+            else
                 depth++;
-            }
         }
-        //System.out.println("Explored to depth " + depth);
-        //System.exit(0);
+        System.out.println("Returning move : " + best.toRelativeString(current_score));
+        System.out.println("Explored to depth " + depth);
+        return best;
     }
 }

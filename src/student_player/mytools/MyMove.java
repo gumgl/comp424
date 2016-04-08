@@ -12,6 +12,8 @@ public class MyMove implements Comparable<MyMove> {
     public HusMove move; // The move that lead to this.state
     public HusBoardState state; // The state resulting from this.move
 
+    public boolean incomplete = false; // when search timed out.
+
     public static Comparator<MyMove> ascComparator = new EvalComparator();
     public static Comparator<MyMove> descComparator = Collections.reverseOrder(ascComparator);
 
@@ -36,6 +38,15 @@ public class MyMove implements Comparable<MyMove> {
         this.state.move(move);
 
         //this.eval =
+    }
+
+    @Override
+    public String toString() {
+        return move.toTransportable() + " (score=" + score + ")";
+    }
+
+    public String toRelativeString(int current_score) {
+        return move.toTransportable() + " (score=" + (score-current_score) + ")";
     }
 
     @Override

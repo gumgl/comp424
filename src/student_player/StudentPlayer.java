@@ -25,26 +25,17 @@ public class StudentPlayer extends HusPlayer {
     public HusMove chooseMove(HusBoardState board_state)
     {
         long startTime = System.currentTimeMillis();
+
         if (tools == null)
-            tools = new MyTools(player_id, opponent_id, board_state);
-        else
-            tools.start_state = board_state;
+            tools = new MyTools(player_id, opponent_id);
 
-        Thread thread = new Thread(tools);
-        thread.start();
-        try {
-            Thread.sleep(1850);
-        } catch (InterruptedException e) {
-            //e.printStackTrace();
-        }
-        thread.interrupt();
+        tools.start_state = board_state;
+        tools.max_time = startTime + MyTools.TIME_LIMIT;
 
-        MyMove best;
-        synchronized (tools.best_lock) {
-            best = tools.best_shared;
-        }
+        MyMove best = tools.findBest();
+
         long endTime = System.currentTimeMillis();
-        //System.out.println("Total execution time: " + (endTime-startTime) + "ms");
+        System.out.println("Total execution time: " + (endTime-startTime) + "ms");
 
         return best.move;
     }
