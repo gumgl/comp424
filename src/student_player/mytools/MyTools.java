@@ -154,7 +154,7 @@ public class MyTools implements Runnable {
                 depth++;
             }
         }
-        System.out.println("Explored to depth " + depth);
+        //System.out.println("Explored to depth " + depth);
         //System.exit(0);
     }
 }

@@ -35,7 +35,7 @@ public class StudentPlayer extends HusPlayer {
         try {
             Thread.sleep(1850);
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            //e.printStackTrace();
         }
         thread.interrupt();
 
@@ -44,7 +44,7 @@ public class StudentPlayer extends HusPlayer {
             best = tools.best_shared;
         }
         long endTime = System.currentTimeMillis();
-        System.out.println("Total execution time: " + (endTime-startTime) + "ms");
+        //System.out.println("Total execution time: " + (endTime-startTime) + "ms");
 
         return best.move;
     }
