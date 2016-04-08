@@ -1,0 +1,58 @@
+\documentclass{article}
+
+\usepackage{mathtools}
+\usepackage[margin=1.5in]{geometry}
+\usepackage{float}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage{amsthm}
+\usepackage{xfrac}
+\usepackage{tikz} % oh ho...
+%\usepackage{svg} % I gave up...
+
+\restylefloat{table}
+%\setlength{\parindent}{0pt}
+
+\author{Guillaume Labranche (260585371)}
+\title{COMP 424 -- Artificial Intelligence\\Project Report}
+\date{due on April 8, 2016}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\pA}{Player 1 }
+\newcommand{\pB}{Player 2 }
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+%\newcommand{-->}{\rightarrow} %does not work :(
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+
+\newenvironment{definition}[1][Definition.]{\begin{trivlist}
+\item[\hskip \labelsep {\bfseries #1}]}{\end{trivlist}}
+
+\begin{document}
+
+
+%\pagenumbering{gobble}
+\maketitle
+
+\section{Description of my agent}
+
+My program uses minimax with a 
+
+\subsection{Evaluation Function}
+My evaluation function is rather simple. The value $v$ of a board is:
+$$v = 1 \cdot \sum_{i=0}^{31} p_{s,i} + 3 \cdot | m \in p_s : m \geq 2 | + 3 \cdot (32-| m \in p_o : m \geq 2 |)
+$$
+where $p_x$ is the score for player with id $x$, $p_{x,i}$ is the number of seeds in pit \#$i$ of player $x$, and $s$ and $o$ are the player ids for my AI and its opponent respectively.
+
+Special cases:\begin{itemize}
+\item $v=\infty$ in the case that the board state is a win for my AI.
+\item $v=-\infty$ in the case that the opponent wins or that we created an infinite move (which could make us lose if done too many times).
+\end{itemize}
+
+The reason for having a simple evaluation function is that 
+
+
+\end{document}
