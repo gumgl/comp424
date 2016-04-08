@@ -4,8 +4,6 @@ import hus.HusBoardState;
 import hus.HusPlayer;
 import hus.HusMove;
 
-import java.util.ArrayList;
-
 import student_player.mytools.MyMove;
 import student_player.mytools.MyTools;
 
@@ -35,15 +33,15 @@ public class StudentPlayer extends HusPlayer {
         Thread thread = new Thread(tools);
         thread.start();
         try {
-            Thread.sleep(1900);
+            Thread.sleep(1850);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
         thread.interrupt();
 
         MyMove best;
-        synchronized (tools.best_move) {
-            best = tools.best_move;
+        synchronized (tools.best_lock) {
+            best = tools.best_shared;
         }
         long endTime = System.currentTimeMillis();
         System.out.println("Total execution time: " + (endTime-startTime) + "ms");

@@ -4,13 +4,22 @@ import hus.HusBoard;
 import hus.HusBoardState;
 import hus.HusMove;
 
+import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class MyTools implements Runnable {
 
-    public static int TOTAL_SEEDS_WEIGHT = 2;
+    public final static int ABSOLUTE_MAX_DEPTH = 100;
+    public final static int WEIGHT_TOTAL_SEEDS = 1;
+    public final static int WEIGHT_LEGAL_MOVES = 3;
 
-    public MyMove best_move = new MyMove();
+    public final static boolean FEATURE_SORTING = true;
+    public final static boolean FEATURE_AB_PRUNING = false;
+
+    public MyMove best_shared = new MyMove();
+    public Object best_lock = new Object();
+
     public HusBoardState start_state;
 
     private int self_id;
@@ -30,32 +39,54 @@ public class MyTools implements Runnable {
     @param state Initial state of the board
     @param current depth at which we are searching the tree
      */
-    public MyMove minimax(HusBoardState state, int depth) {
+    public MyMove minimax(HusBoardState state, int depth, int alphabeta) {
         if (depth == 0)
             return new MyMove(eval(state));
         else {
-            ArrayList<HusMove> moves = state.getLegalMoves();
+            ArrayList<HusMove> hus_moves = state.getLegalMoves();
+            ArrayList<MyMove> my_moves = new ArrayList<>();
 
-            if (moves.size() == 0) // Cannot play
+            if (hus_moves.size() == 0) // Cannot play
                 return new MyMove(eval(state));
 
+            for (HusMove move : hus_moves) {
+                // Create a new MyMove and perform the move
+                MyMove mymove = new MyMove(move,state);
+                // Evaluate the board
+                mymove.eval = eval(mymove.state);
+                // Add it to our list for sorting
+                my_moves.add(mymove);
+            }
             // We maximize when it's our turn
             boolean maximize = state.getTurnPlayer() == self_id;
-            boolean initialized = false; // Store first move's value as best
-            MyMove best = null;
 
-            for (HusMove move : moves) {
-                HusBoardState candidate_board = (HusBoardState) state.clone();
-                candidate_board.move(move);
-                MyMove result = minimax(candidate_board, depth - 1); // Get score
-                result.move = move; // Store the move
+            if (FEATURE_SORTING) {
+                if (maximize) // Highest board evaluations first
+                    Collections.sort(my_moves, MyMove.descComparator /*Collections.reverseOrder(new MyMove.EvalComparator())*/);
+                else // Lowest board evaluations first
+                    Collections.sort(my_moves, MyMove.ascComparator);
+            }
 
-                if (!initialized
-                    || maximize && result.score > best.score
-                    || !maximize && result.score < best.score) {
-                    initialized = true;
-                    best = result;
-                }
+
+            //boolean initialized = false; // Store first move's value as best
+            MyMove best = new MyMove(maximize ? Integer.MIN_VALUE : Integer.MAX_VALUE);
+
+            for (MyMove move : my_moves) {
+                MyMove result = minimax(move.state, depth - 1, best.score); // Get score
+                move.score = result.score; // Bring the score up in the tree
+
+                if (maximize && move.score > best.score
+                        || !maximize && move.score < best.score)
+                    best = move;
+
+                // If we're minimizing and our current best is less than our parent's max so far
+                // then we don't need to go further because our parent wants to maximize
+                // and our best will inevitably be lower. The inverse is also true.
+                if (FEATURE_AB_PRUNING &&
+                        (!maximize && best.score < alphabeta
+                      || maximize && best.score > alphabeta)
+                      || Thread.currentThread().isInterrupted())
+                    break;
             }
             return best;
         }
@@ -72,7 +103,13 @@ public class MyTools implements Runnable {
             return Integer.MIN_VALUE;
         else { // Includes the case where opponent cancelled the game
             int score = 0;
-            score += countTotalSeeds(state, self_id) * 2;
+            // Points for each seed that we have
+            score += countTotalSeeds(state, self_id) * WEIGHT_TOTAL_SEEDS;
+            // Points for each legal move that we have (more options is usually better)
+            score += countLegalMoves(state, self_id) * WEIGHT_LEGAL_MOVES;
+            // Points for each pit w/ < 2 seeds (moves they cannot make)
+            score += (HusBoardState.BOARD_WIDTH - countLegalMoves(state, opponent_id)) * WEIGHT_LEGAL_MOVES;
+
             return score;
         }
     }
@@ -85,21 +122,39 @@ public class MyTools implements Runnable {
         return sum;
     }
 
+    public long countLegalMoves(HusBoardState state, int player_id){
+        /*int count = 0;
+        for(int i = 0; i < 2 * HusBoardState.BOARD_WIDTH; i++){
+            if(state.getPits()[player_id][i] >= 2)
+                count ++;
+        }
+        return count;*/
+
+        return Arrays.stream(state.getPits()[player_id])
+                .filter(n -> n >= 2).count();
+    }
+
     @Override
     public void run() {
         int depth = 3; // Start with depth 3, which should never take more than 2 seconds
-        while (! Thread.currentThread().isInterrupted()) {
+        while (true) {
 
-            MyMove best = minimax(start_state, depth);
+            // First starts by maximizing. Our "best" is just INT_MAX since we don't want it to think it is useless.
+            MyMove best = minimax(start_state, depth, Integer.MAX_VALUE);
 
-            if (! Thread.currentThread().isInterrupted())
-                synchronized (this.best_move) {
-                    this.best_move = best;
+
+            if (Thread.currentThread().isInterrupted()
+                    || depth >= ABSOLUTE_MAX_DEPTH
+                    || best.score >= Integer.MAX_VALUE)
+                break;
+            else {
+                synchronized (this.best_lock) {
+                    this.best_shared = best;
                 }
-            System.out.println("Explored to depth " + depth);
-
-            depth ++;
+                depth++;
+            }
         }
+        System.out.println("Explored to depth " + depth);
         //System.exit(0);
     }
 }
