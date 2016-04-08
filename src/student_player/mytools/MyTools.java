@@ -15,7 +15,7 @@ public class MyTools implements Runnable {
     public final static int WEIGHT_LEGAL_MOVES = 3;
 
     public final static boolean FEATURE_SORTING = true;
-    public final static boolean FEATURE_AB_PRUNING = false;
+    public final static boolean FEATURE_AB_PRUNING = true;
 
     public MyMove best_shared = new MyMove();
     public Object best_lock = new Object();
